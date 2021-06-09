@@ -1,0 +1,33 @@
+version: "3.7"
+networks:
+  traefik:
+    external: true
+    
+services:
+  front:
+    image: openhistorymap/index-front
+    networks:
+      - traefik
+      - default
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=traefik"
+        - "traefik.http.routers.ohm-index-front.rule=Host(`index.openhistorymap.org`)"
+        - "traefik.http.routers.ohm-index-front.entrypoints=web-secure"
+        - "traefik.http.routers.ohm-index-front.tls.certresolver=certificato"
+        - "traefik.http.services.ohm-index-front-svc.loadbalancer.server.port=80"
+    
+  api:
+    image: openhistorymap/index-api
+    networks:
+      - traefik
+      - default
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=traefik"
+        - "traefik.http.routers.ohm-index-api.rule=Host(`api.index.openhistorymap.org`)"
+        - "traefik.http.routers.ohm-index-api.entrypoints=web-secure"
+        - "traefik.http.routers.ohm-index-api.tls.certresolver=certificato"
+        - "traefik.http.services.ohm-index-api-svc.loadbalancer.server.port=80"
