@@ -1,0 +1,60 @@
+version: "3.7"
+networks:
+  traefik:
+    external: true
+    
+services:
+  front:
+    image: openhistorymap/map
+    networks:
+      - traefik
+      - default
+    deploy:
+      replicas: 3
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=traefik"
+        - "traefik.http.routers.ohm-index-front.rule=Host(`map.openhistorymap.org`)"
+        - "traefik.http.routers.ohm-index-front.entrypoints=web-secure"
+        - "traefik.http.routers.ohm-index-front.tls.certresolver=certificato"
+        - "traefik.http.services.ohm-index-front-svc.loadbalancer.server.port=80"
+    
+  api:
+    image: openhistorymap/tiles-api:latest
+    networks:
+      - traefik
+      - default
+    deploy:
+      replicas: 6
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=traefik"
+        - "traefik.http.routers.ohm-index-api.rule=Host(`tiles.openhistorymap.org`)||Host(`a.tiles.openhistorymap.org`)||Host(`b.tiles.openhistorymap.org`)||Host(`c.tiles.openhistorymap.org`)"
+        - "traefik.http.routers.ohm-index-api.entrypoints=web-secure"
+        - "traefik.http.routers.ohm-index-api.tls.certresolver=certificato"
+        - "traefik.http.services.ohm-index-api-svc.loadbalancer.server.port=80"
+    environment:
+      POSTGRES: prod_db
+      POSTGRES_DBNAME: ${POSTGRES_DBNAME}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASS: ${POSTGRES_PASS}
+      REDIS_HOST: redis
+  redis:
+    image: redis
+  prod_db:
+    image: postgis/postgis:12-master
+    deploy:
+      placement:
+        constraints:
+          - "node.hostname==runner"
+    volumes: 
+      - ohm_psql_prod_12:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DBNAME: ${POSTGRES_DBNAME}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASS: ${POSTGRES_PASS}
+      POSTGRES_PASSWORD: ${POSTGRES_PASS}
+
+volumes:
+  ohm_psql_prod_12:
+    external: true
